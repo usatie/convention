@@ -1,3 +1,4 @@
+//line /a.go:1
 package a
 
 func doSomething() error {

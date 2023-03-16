@@ -20,6 +20,8 @@ var Analyzer = &analysis.Analyzer{
 }
 
 var DiagnosticAnalyzer = &analysis.Analyzer{
+	Name:       "diagnostic",
+	Doc:        "diagnose only",
 	Run:        diagnose,
 	ResultType: reflect.TypeOf([]analysis.Diagnostic{}),
 }
