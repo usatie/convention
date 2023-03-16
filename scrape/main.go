@@ -4,7 +4,11 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
+	"os/exec"
+	"strings"
 )
 
 type Package struct {
@@ -35,7 +39,79 @@ func getPackages() ([]Package, error) {
 	return packages, nil
 }
 
-func getPackage(pkg Package) {
+func goModInit(dir string) error {
+	cmd := exec.Command("go", "mod", "init", "hoge")
+	fmt.Println(cmd.String())
+	var stdout strings.Builder
+	var stderr strings.Builder
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	cmd.Dir = dir
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println(err)
+		fmt.Printf("stderr: %s\n", stderr.String())
+		return err
+	}
+	fmt.Printf("stdout: %s\n", stdout.String())
+	return nil
+}
+
+func goGet(pkg Package, dir string) error {
+
+	cmd := exec.Command("go", "get", pkg.Path+"/...")
+	fmt.Println(cmd.String())
+	var stdout strings.Builder
+	var stderr strings.Builder
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	cmd.Dir = dir
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println(err)
+		fmt.Printf("stderr: %s\n", stderr.String())
+		return err
+	}
+	fmt.Printf("stdout: %s\n", stdout.String())
+	return nil
+}
+
+func goVet(pkg Package, dir string) error {
+	// go vet -vettool=/Users/shunusami/Desktop/gopher-intern/convention/convention software.sslmate.com/src/go-pkcs12/...
+	executablePath := "/Users/shunusami/Desktop/gopher-intern/convention/convention"
+	cmd := exec.Command("go", "vet", "-vettool="+executablePath, pkg.Path+"/...")
+	fmt.Println(cmd.String())
+	var stdout strings.Builder
+	var stderr strings.Builder
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	cmd.Dir = dir
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println(err)
+		fmt.Printf("stderr: %s\n", stderr.String())
+		return err
+	}
+	fmt.Printf("stdout: %s\n", stdout.String())
+	return nil
+}
+
+func analyze(pkg Package) {
+	dir, err := os.MkdirTemp("", "example")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.RemoveAll(dir) // clean up
+	if err = goModInit(dir); err != nil {
+		return
+	}
+	if err = goGet(pkg, dir); err != nil {
+		return
+	}
+	if err = goVet(pkg, dir); err != nil {
+		return
+	}
+
 	// exec packageでgo getコマンドを叩く
 	// まずは手でそのコマンドを叩いてみる
 	// 1. Create temp directory
@@ -68,6 +144,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("%+v\n", packages[:5])
-	getPackage(packages[0])
+	for _, pkg := range packages[:5] {
+		analyze(pkg)
+	}
 }
