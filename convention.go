@@ -1,10 +1,10 @@
 package convention
 
 import (
-	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
+	"reflect"
 
 	"golang.org/x/tools/go/analysis"
 )
@@ -13,12 +13,26 @@ const doc = "convention detects code that goes against conventions and prompting
 
 // Analyzer is ...
 var Analyzer = &analysis.Analyzer{
-	Name: "convention",
-	Doc:  doc,
-	Run:  run,
+	Name:     "convention",
+	Doc:      doc,
+	Run:      run,
+	Requires: []*analysis.Analyzer{DiagnosticAnalyzer},
+}
+
+var DiagnosticAnalyzer = &analysis.Analyzer{
+	Run:        diagnose,
+	ResultType: reflect.TypeOf([]analysis.Diagnostic{}),
 }
 
 func run(pass *analysis.Pass) (any, error) {
+	result := pass.ResultOf[DiagnosticAnalyzer].([]analysis.Diagnostic)
+	for _, d := range result {
+		pass.Report(d)
+	}
+	return nil, nil
+}
+
+func diagnose(pass *analysis.Pass) (any, error) {
 	var result []analysis.Diagnostic
 	for _, file := range pass.Files {
 		cmap := ast.NewCommentMap(pass.Fset, file, file.Comments)
@@ -89,7 +103,6 @@ func checkIfCond(pass *analysis.Pass, ifStmt *ast.IfStmt, cmap ast.CommentMap) (
 		}
 		found = true
 		d = analysis.Diagnostic{Pos: ifStmt.Pos(), Message: "warning: Handle error case or leave comment."}
-		fmt.Println(pass.Fset.Position(ifStmt.Pos()), ": warning: Handle error case or leave comment.")
 		return true
 	})
 	return d, found
