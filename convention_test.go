@@ -23,13 +23,13 @@ func init() {
 // TestAnalyzer is a test for Analyzer.
 func TestAnalyzer(t *testing.T) {
 	testdata := testutil.WithModules(t, analysistest.TestData(), nil)
-	result := analysistest.Run(t, testdata, convention.DiagnosticAnalyzer, "a")
+	result := analysistest.Run(t, testdata, convention.DiagnoseAnalyzer, "a")
 	got := ""
 	for _, res := range result {
 		if diagnose, ok := res.Result.([]analysis.Diagnostic); ok {
 			for _, d := range diagnose {
 				pos := res.Pass.Fset.Position(d.Pos)
-				got += fmt.Sprintf("%s: %s", pos, d.Message)
+				got += fmt.Sprintf("%s: %s\n", pos, d.Message)
 			}
 		}
 	}
