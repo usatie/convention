@@ -20,8 +20,18 @@ func f() {
 		return
 	}
 
+	// Good:
+	if err := doSomething(); nil == err { // if NO error
+		return
+	}
+
 	// Bad: missing comment
 	if err := doSomething(); err == nil {
+		return
+	}
+
+	// Bad: missing comment
+	if err := doSomething(); nil == err {
 		return
 	}
 

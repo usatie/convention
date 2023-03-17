@@ -1,1 +1,1 @@
-/a.go:23: warning: Handle error case or leave comment: if err := doSomething(); err == nil {
+/a.go:23: warning: Handle error case or leave comment: if err := doSomething(); err == nil {/a.go:33: warning: Handle error case or leave comment: if err := doSomething(); nil == err {
