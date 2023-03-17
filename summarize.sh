@@ -1,9 +1,11 @@
 #!/bin/bash
 cd results
-# count
-echo "合計:"
-echo -e "$(grep -v '^#' results.txt | wc -l | awk '{print $1}') / $(grep '^# ' results.txt | wc -l | awk '{print $1}')\n"
 
-# result
+# Examples
 echo "具体的なコード例:"
-head -100 results.txt | sed 's/.*: //g' | uniq
+tail -100 results.txt | sed 's/.*: //g' | uniq
+echo
+
+# Summary
+echo "検出された行数      : $(grep -v '^#' results.txt | wc -l | awk '{print $1}')"
+echo "検査したモジュール数: $(grep '^# ' results.txt | wc -l | awk '{print $1}')"
