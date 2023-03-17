@@ -19,9 +19,11 @@ func diagnose(pass *analysis.Pass) (any, error) {
 		ErrorHandlingDiagnoser,
 	}
 
-	var result []analysis.Diagnostic
+	var combined []analysis.Diagnostic
 	for _, diagnoser := range diagnosers {
-		result = append(result, pass.ResultOf[diagnoser].([]analysis.Diagnostic)...)
+		if result, ok := pass.ResultOf[diagnoser].([]analysis.Diagnostic); ok {
+			combined = append(combined, result...)
+		}
 	}
-	return result, nil
+	return combined, nil
 }
