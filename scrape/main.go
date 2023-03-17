@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"strings"
 )
 
@@ -49,11 +50,11 @@ func goModInit(dir string) error {
 	cmd.Dir = dir
 	err := cmd.Run()
 	if err != nil {
-		fmt.Println(err)
-		fmt.Printf("stderr: %s\n", stderr.String())
+		//fmt.Println(err)
+		//fmt.Printf("stderr: %s\n", stderr.String())
 		return err
 	}
-	fmt.Printf("stdout: %s\n", stdout.String())
+	//fmt.Printf("stdout: %s\n", stdout.String())
 	return nil
 }
 
@@ -68,11 +69,11 @@ func goGet(pkg Package, dir string) error {
 	cmd.Dir = dir
 	err := cmd.Run()
 	if err != nil {
-		fmt.Println(err)
-		fmt.Printf("stderr: %s\n", stderr.String())
+		//fmt.Println(err)
+		//fmt.Printf("stderr: %s\n", stderr.String())
 		return err
 	}
-	fmt.Printf("stdout: %s\n", stdout.String())
+	//fmt.Printf("stdout: %s\n", stdout.String())
 	return nil
 }
 
@@ -87,8 +88,9 @@ func goVet(pkg Package, dir string) error {
 	cmd.Stderr = &stderr
 	cmd.Dir = dir
 	err := cmd.Run()
+	writeResult(pkg, stderr)
 	if err != nil {
-		fmt.Println(err)
+		//fmt.Println(err)
 		fmt.Printf("stderr: %s\n", stderr.String())
 		return err
 	}
@@ -96,7 +98,31 @@ func goVet(pkg Package, dir string) error {
 	return nil
 }
 
+const resultDir string = "results"
+
+func writeResult(pkg Package, stderr strings.Builder) {
+	s := stderr.String()
+	if s == "" {
+		s = "# " + pkg.Path
+	}
+	filename := path.Join(resultDir, "results.txt")
+	f, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0660)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	if _, err = f.WriteString(s); err != nil {
+		log.Fatal(err)
+	}
+}
+
 func analyze(pkg Package) {
+	// Create result dir
+	err := os.Mkdir(resultDir, 0750)
+	if err != nil && !os.IsExist(err) {
+		log.Fatal(err)
+	}
+	// Create temp dir
 	dir, err := os.MkdirTemp("", "example")
 	if err != nil {
 		log.Fatal(err)
@@ -114,28 +140,12 @@ func analyze(pkg Package) {
 
 	// exec packageでgo getコマンドを叩く
 	// まずは手でそのコマンドを叩いてみる
-	// 1. Create temp directory
+	// 1. Create temp directory, Create result directory
 	// 2. Cd to temp directory ( exec packageでcdできる）
 	// 3. go mod initで初期化（最後の引数は適当）
 	// 4. indexをparseしたpackage名を使ってgo get {module_path}/...
 	// 5. go vet -vettool {module_path}/...
-	/*
-		// Get response
-		path := fmt.Sprintf("https://proxy.golang.org/%s/@v/%s.info", pkg.Path, pkg.Version)
-		resp, err := http.Get(path)
-		if err != nil {
-			return nil, err
-		}
-		defer resp.Body.Close()
-
-		// Scan response line by line
-		scanner := bufio.NewScanner(resp.Body)
-		for scanner.Scan() {
-			// Decode each line
-			fmt.Println(scanner.Text())
-		}
-		return nil, nil
-	*/
+	// 6. 結果をresultに集計
 }
 
 func main() {
@@ -144,7 +154,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	for _, pkg := range packages[:5] {
+	fmt.Println("Number of packages: ", len(packages))
+	for _, pkg := range packages {
 		analyze(pkg)
 	}
 }
