@@ -45,16 +45,16 @@ func checkIfCond(pass *analysis.Pass, ifStmt *ast.IfStmt) (d analysis.Diagnostic
 		if n == nil {
 			return false
 		}
-		// n is binary expression
+		// n is binary expression ?
 		binOp, ok := n.(*ast.BinaryExpr)
 		if !ok {
 			return true
 		}
-		// operator is ==
+		// operator is == ?
 		if binOp.Op != token.EQL {
 			return true
 		}
-		// x or y is nil
+		// x or y is nil ?
 		var t types.Type
 		if isNil(pass, binOp.X) {
 			t = pass.TypesInfo.TypeOf(binOp.Y)
@@ -63,22 +63,15 @@ func checkIfCond(pass *analysis.Pass, ifStmt *ast.IfStmt) (d analysis.Diagnostic
 		} else {
 			return true
 		}
-		// x or y implements error interface
+		// x or y implements error interface ?
 		if !implementsErrorInterface(t) {
 			return true
 		}
-		// There is no comments about breaking convention
-		ifPos := pass.Fset.Position(ifStmt.Pos())
-		for _, f := range pass.Files {
-			for _, cg := range f.Comments {
-				for _, comment := range cg.List {
-					if pass.Fset.Position(comment.Pos()).Line == ifPos.Line {
-						return true
-					}
-				}
-			}
-
+		// No comments ?
+		if hasCommentOnLine(pass, ifStmt) {
+			return true
 		}
+		// This is breaking convention!
 		found = true
 		d = analysis.Diagnostic{
 			Pos:     ifStmt.Pos(),
@@ -87,6 +80,23 @@ func checkIfCond(pass *analysis.Pass, ifStmt *ast.IfStmt) (d analysis.Diagnostic
 		return true
 	})
 	return d, found
+}
+
+func hasCommentOnLine(pass *analysis.Pass, n ast.Node) bool {
+	pos := pass.Fset.Position(n.Pos())
+	for _, f := range pass.Files {
+		if n.Pos() < f.Pos() || n.Pos() > f.End() {
+			continue
+		}
+		for _, cg := range f.Comments {
+			for _, comment := range cg.List {
+				if pass.Fset.Position(comment.Pos()).Line == pos.Line {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 func isNil(pass *analysis.Pass, n ast.Node) bool {
